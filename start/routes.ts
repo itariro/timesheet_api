@@ -17,17 +17,53 @@
 | import './routes/customer'
 |
 */
-
+import Database from '@ioc:Adonis/Lucid/Database'
 import Route from '@ioc:Adonis/Core/Route'
+import Application from '@ioc:Adonis/Core/Application'
+import Migrator from '@ioc:Adonis/Lucid/Migrator'
 
 Route.get('/', async () => {
-  return { hello: 'world' }
+  const migrator = new Migrator(Database, Application, {
+    direction: 'up',
+    dryRun: false,
+    // connectionName: 'pg',
+  })
+
+  await migrator.run()
+  return migrator.migratedFiles
 })
 
+// USER MANAGEMENT
 Route.get('/users/check', async () => {
   return { hello: 'checking for user account' }
 })
 
-Route.get('/users/add', async () => {
-  return { hello: 'checking for user account' }
+Route.post('users/add', async ({ request, response }) => {
+  const name = request.input('name')
+  const companyName = request.input('company_name')
+  const mobileNumber = request.input('mobile_number')
+  const firebaseId = request.input('firebase_id')
+  const status = 'pending'
+
+  const postId = await Database.table('users')
+    .insert({
+      name: name,
+      company_name: companyName,
+      mobile_number: mobileNumber,
+      firebase_id: firebaseId,
+    })
+    .returning('id')
+
+  return response.created('Invalid credentials')
+})
+
+// TIMESHEETS
+Route.get('/sheets/getallforuser', async ({ request }) => {
+  const limit = 20
+  const page = request.input('page', 1)
+
+  return Database.from('posts')
+    .select('*')
+    .orderBy('id', 'desc') // 👈 get latest first
+    .paginate(page, limit) // 👈 paginate using page numbers
 })
